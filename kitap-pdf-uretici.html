@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Vue PDF Template (Text + Drag & Drop Image)</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        #app {
+            display: flex;
+            width: 100%;
+        }
+
+        #a4 {
+            width: 595px;
+            height: 842px;
+            border: none;
+            background-color: #fff;
+            position: relative;
+            margin-right: 20px;
+        }
+
+        .placed {
+            position: absolute;
+            border: 1px solid blue;
+            background: #cce;
+            font-size: 12px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .controls {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .editor {
+            background: #f9f9f9;
+            border: 1px solid #333;
+            padding: 10px;
+        }
+
+        button {
+            background-color: #6a0dad;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #7b1fcf;
+        }
+
+        button.active {
+            background-color: #4b007a;
+            box-shadow: 0 0 8px #6a0dad;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        input[type="number"],
+        select {
+            margin-top: 5px;
+            padding: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Loading indicator -->
+        <div v-if="loading" class="loading">
+            PDF oluşturuluyor... {{ loadingProgress }}%
+        </div>
+
+        <!-- A4 sahnesi -->
+        <div id="a4" @click="selected=null" @dragover.prevent @drop="onDrop">
+            <div v-for="(item,i) in placed" :key="i" class="placed"
+                :style="{ left: item.x+'px', top: item.y+'px', width:item.width+'px', height:item.height+'px' }"
+                @mousedown.stop="startDrag(i,$event)" @dragstart.prevent draggable="false" @click.stop="selected=i">
+
+                <template v-if="item.type==='image'">
+                    <img :src="item.src" :style="{width:'100%', height:'100%', objectFit: 'contain'}"
+                        draggable="false" />
+                </template>
+                <template v-else>{{item.label}}</template>
+            </div>
+
+        </div>
+
+        <!-- Kontrol paneli sağda -->
+        <div class="controls">
+            <h3>Template Editor</h3>
+            <button :class="{active: activeButton==='text'}" @click="addTextBlock">Blok Ekle</button>
+            <button :class="{active: activeButton==='pdf'}" @click="exportPdfClick" :disabled="loading">PDF
+                Üret</button>
+
+            <div v-if="selected!==null" class="editor">
+                <h4>Alan Düzenle</h4>
+                <label>Tip:</label><br>
+                <select v-model="placed[selected].type">
+                    <option value="text">Text</option>
+                    <option value="image">Resim</option>
+                    <option value="url_image">URL'den Resim</option>
+                </select><br><br>
+
+                <label>Etiket:</label><br>
+                <input v-model="placed[selected].label" placeholder="örn. Müşteri Adı"><br><br>
+
+                <div v-if="placed[selected].type === 'url_image'">
+                    <label>Excel Kolonu (URL):</label><br>
+                    <input v-model="placed[selected].column" placeholder="örn. ImageURL"><br><br>
+                    <button @click="testUrlImage">URL'yi Test Et</button><br><br>
+                </div>
+                <div v-else>
+                    <label>Excel Kolonu:</label><br>
+                    <input v-model="placed[selected].column" placeholder="örn. Name"><br><br>
+                </div>
+
+                <label>Genişlik (px):</label><br>
+                <input type="number" v-model.number="placed[selected].width"><br><br>
+                <label>Yükseklik (px):</label><br>
+                <input type="number" v-model.number="placed[selected].height"><br><br>
+
+                <div v-if="placed[selected].type==='image'">
+                    <label>
+                        <input type="checkbox" v-model="placed[selected].maintainAspectRatio">
+                        En-boy oranını koru
+                    </label><br><br>
+                </div>
+
+                <button @click="selected=null">Kapat</button>
+            </div>
+
+            <div class="editor">
+                <label>Excel Dosyası Seç:</label>
+                <input type="file" @change="onExcel" accept=".xlsx,.xls,.csv" />
+                <small>Resimler masaüstünden sürükle-bırak ile A4 sahnesine eklenebilir.</small>
+                <div v-if="rows.length">
+                    <br><strong>{{ rows.length }} satır yüklendi</strong>
+                    <br>Kolonlar: {{ Object.keys(rows[0] || {}).join(', ') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        Vue.createApp({
+            data() {
+                return {
+                    placed: [],
+                    rows: [],
+                    selected: null,
+                    dragging: { index: null, offsetX: 0, offsetY: 0 },
+                    activeButton: null,
+                    loading: false,
+                    loadingProgress: 0
+                }
+            },
+            mounted() {
+                document.addEventListener("mousemove", this.onMouseMove);
+                document.addEventListener("mouseup", this.onMouseUp);
+            },
+            methods: {
+                addTextBlock() {
+                    this.activeButton = 'text';
+                    this.placed.push({
+                        type: 'text',
+                        label: 'Yeni Alan',
+                        column: '',
+                        x: 50,
+                        y: 50,
+                        width: 150,
+                        height: 20
+                    });
+                    this.selected = this.placed.length - 1;
+                    setTimeout(() => this.activeButton = null, 200);
+                },
+
+                startDrag(index, e) {
+                    this.dragging.index = index;
+                    this.dragging.offsetX = e.offsetX;
+                    this.dragging.offsetY = e.offsetY;
+                },
+
+                onMouseMove(e) {
+                    if (this.dragging.index !== null) {
+                        const rect = document.getElementById("a4").getBoundingClientRect();
+                        const item = this.placed[this.dragging.index];
+                        item.x = Math.min(Math.max(e.clientX - rect.left - this.dragging.offsetX, 0), rect.width - item.width);
+                        item.y = Math.min(Math.max(e.clientY - rect.top - this.dragging.offsetY, 0), rect.height - item.height);
+                    }
+                },
+
+                onMouseUp() {
+                    this.dragging.index = null;
+                },
+
+                onDrop(e) {
+                    e.preventDefault();
+                    const files = e.dataTransfer.files;
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        if (file.type.startsWith("image/")) {
+                            this.loadImageWithOriginalSize(file, e.offsetX, e.offsetY);
+                        }
+                    }
+                },
+
+                loadImageWithOriginalSize(file, x, y) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // Orijinal boyutları al, ama A4 sınırları içinde tut
+                            let width = img.naturalWidth;
+                            let height = img.naturalHeight;
+
+                            // A4 boyutlarına göre ölçeklendir (maksimum 400px genişlik/yükseklik)
+                            const maxSize = 400;
+                            if (width > maxSize || height > maxSize) {
+                                const ratio = Math.min(maxSize / width, maxSize / height);
+                                width = width * ratio;
+                                height = height * ratio;
+                            }
+
+                            this.placed.push({
+                                type: 'image',
+                                label: file.name,
+                                column: '',
+                                src: ev.target.result,
+                                x: x,
+                                y: y,
+                                width: Math.round(width),
+                                height: Math.round(height),
+                                maintainAspectRatio: true,
+                                originalAspectRatio: img.naturalWidth / img.naturalHeight
+                            });
+                        };
+                        img.src = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                },
+
+
+
+                async loadImageFromUrl(url) {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.crossOrigin = "anonymous";
+
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            canvas.width = img.naturalWidth;
+                            canvas.height = img.naturalHeight;
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas.toDataURL('image/jpeg', 0.9));
+                        };
+
+                        img.onerror = () => {
+                            // CORS hatası durumunda proxy dene
+                            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                            fetch(proxyUrl)
+                                .then(response => response.json())
+                                .then(data => {
+                                    const img2 = new Image();
+                                    img2.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        const ctx = canvas.getContext('2d');
+                                        canvas.width = img2.naturalWidth;
+                                        canvas.height = img2.naturalHeight;
+                                        ctx.drawImage(img2, 0, 0);
+                                        resolve(canvas.toDataURL('image/jpeg', 0.9));
+                                    };
+                                    img2.onerror = () => reject(new Error('Resim yüklenemedi'));
+                                    img2.src = url;
+                                })
+                                .catch(() => reject(new Error('CORS hatası - resim erişilemiyor')));
+                        };
+
+                        img.src = url;
+                    });
+                },
+
+                async onExcel(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    try {
+                        const buf = await file.arrayBuffer();
+                        const wb = XLSX.read(buf, { type: "array" });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        this.rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+                        alert(this.rows.length + " satır okundu!");
+                    } catch (error) {
+                        alert("Excel dosyası okunamadı: " + error.message);
+                    }
+                },
+
+                exportPdfClick() {
+                    this.activeButton = 'pdf';
+                    this.exportPdf();
+                    setTimeout(() => this.activeButton = null, 200);
+                },
+
+                async exportPdf() {
+                    if (!this.rows.length) {
+                        alert("Önce excel seçin!");
+                        return;
+                    }
+
+                    this.loading = true;
+                    this.loadingProgress = 0;
+
+                    try {
+                        const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+                        for (let rowIndex = 0; rowIndex < this.rows.length; rowIndex++) {
+                            const row = this.rows[rowIndex];
+                            this.loadingProgress = Math.round(((rowIndex + 1) / this.rows.length) * 100);
+
+                            if (rowIndex > 0) {
+                                doc.addPage();
+                            }
+
+                            for (const field of this.placed) {
+                                try {
+                                    if (field.type === 'image' && field.src) {
+                                        // Yerel resim
+                                        doc.addImage(field.src, "JPEG", field.x, field.y, field.width, field.height);
+                                    } else if (field.type === 'url_image' && field.column) {
+                                        // URL'den resim
+                                        const imageUrl = row[field.column];
+                                        if (imageUrl) {
+                                            try {
+                                                const imgData = await this.loadImageFromUrl(imageUrl);
+                                                doc.addImage(imgData, "JPEG", field.x, field.y, field.width, field.height);
+                                            } catch (error) {
+                                                console.warn('Resim yüklenemedi:', imageUrl, error);
+                                                doc.text(`Resim yüklenemedi: ${imageUrl}`, field.x, field.y + 12);
+                                            }
+                                        }
+                                    } else {
+                                        // Text
+                                        const val = row[field.column] || "";
+                                        const text = field.label ? `${field.label}: ${val}` : val.toString();
+                                        doc.text(text, field.x, field.y + 12);
+                                    }
+                                } catch (error) {
+                                    console.warn('Alan işlenirken hata:', field, error);
+                                }
+                            }
+
+                            // Her 10 satırda bir kısa bekle (UI donmasını önlemek için)
+                            if (rowIndex % 10 === 0) {
+                                await new Promise(resolve => setTimeout(resolve, 10));
+                            }
+                        }
+
+                        doc.save("output.pdf");
+
+                    } catch (error) {
+                        alert("PDF oluşturulurken hata: " + error.message);
+                    } finally {
+                        this.loading = false;
+                        this.loadingProgress = 0;
+                    }
+                }
+            },
+
+            watch: {
+                // En-boy oranını koruma
+                'placed': {
+                    handler(newPlaced) {
+                        newPlaced.forEach(item => {
+                            if (item.type === 'image' && item.maintainAspectRatio && item.originalAspectRatio) {
+                                // Genişlik değiştiğinde yüksekliği ayarla
+                                if (item.width && item.width !== item.lastWidth) {
+                                    item.height = Math.round(item.width / item.originalAspectRatio);
+                                    item.lastWidth = item.width;
+                                }
+                                // Yükseklik değiştiğinde genişliği ayarla
+                                else if (item.height && item.height !== item.lastHeight) {
+                                    item.width = Math.round(item.height * item.originalAspectRatio);
+                                    item.lastHeight = item.height;
+                                }
+                            }
+                        });
+                    },
+                    deep: true
+                }
+            }
+        }).mount("#app");
+    </script>
+</body>
+
+</html>
