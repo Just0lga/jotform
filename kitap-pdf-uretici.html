@@ -15,7 +15,7 @@
             padding: 20px;
             background: linear-gradient(135deg, #0f172a, #1e293b);
             overflow: hidden;
-            color: #f8fafc;
+            color: #000000;
         }
 
         #app {
@@ -58,6 +58,25 @@
             box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
         }
 
+        .a4-wrapper {
+            flex-shrink: 0;
+            /* Esnekliği kapat */
+            max-height: 100vh;
+            /* Ekranı aşarsa */
+            overflow-y: auto;
+            /* Dikey scroll */
+            padding-right: 10px;
+            /* Scroll çubuğu için boşluk */
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            /* Butonlar arasındaki boşluk */
+        }
+
+
+
         /* Kontrol paneli */
         .controls {
             flex: 1;
@@ -67,7 +86,7 @@
             overflow-y: auto;
             max-height: 100vh;
             padding: 20px;
-            background: rgba(56, 12, 58, 0.9);
+            background: rgba(178, 27, 243, 0.9);
             border-radius: 16px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
         }
@@ -163,152 +182,162 @@
 </head>
 
 <body>
-    <div id="app">
-        <!-- Loading indicator -->
-        <div v-if="loading" class="loading">
-            PDF oluşturuluyor... {{ loadingProgress }}%
-        </div>
+    <div class="a4-wrapper">
 
-        <!-- Template kaydetme modalı -->
-        <div v-if="showSaveModal" class="modal">
-            <div class="modal-content">
-                <h4>Template'i Kaydet</h4>
-                <p>Bu template'i kaydetmek ister misiniz?</p>
-                <label>Template Adı:</label><br>
-                <input type="text" v-model="templateName" placeholder="Template adını girin"
-                    style="width: 100%; margin: 10px 0;"><br>
-                <div class="modal-buttons">
-                    <button @click="showSaveModal = false" style="background-color: #666;">İptal</button>
-                    <button @click="saveTemplate" :disabled="!templateName.trim()">Kaydet</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- A4 sahnesi -->
-        <div id="a4" @click="selected=null" @dragover.prevent @drop="onDrop">
-            <div v-for="(item,i) in placed" :key="i" class="placed"
-                :style="{ left: item.x+'px', top: item.y+'px', width:item.width+'px', height:item.height+'px' }"
-                @mousedown.stop="startDrag(i,$event)" @dragstart.prevent draggable="false" @click.stop="selected=i">
-
-                <template v-if="item.type==='image'">
-                    <img :src="item.src" :style="{width:'100%', height:'100%', objectFit: 'contain'}"
-                        draggable="false" />
-                </template>
-                <template v-else-if="item.type==='url_image'">
-                    <div
-                        style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; text-align:center;">
-                        URL Resim<br>{{ item.column || 'Excel kolonu belirtilmedi' }}
-                    </div>
-                </template>
-                <template v-else>{{item.label}}</template>
-
-                <!-- Resize handles sadece resim tipli ve seçili alan için -->
-                <template v-if="(item.type==='image' || item.type==='url_image') && selected===i">
-                    <!-- Köşe handle'ları -->
-                    <div class="resize-handle resize-corner nw" @mousedown.stop="startResize(i, 'nw', $event)"></div>
-                    <div class="resize-handle resize-corner ne" @mousedown.stop="startResize(i, 'ne', $event)"></div>
-                    <div class="resize-handle resize-corner sw" @mousedown.stop="startResize(i, 'sw', $event)"></div>
-                    <div class="resize-handle resize-corner se" @mousedown.stop="startResize(i, 'se', $event)"></div>
-
-                    <!-- Kenar handle'ları -->
-                    <div class="resize-handle resize-edge n" @mousedown.stop="startResize(i, 'n', $event)"></div>
-                    <div class="resize-handle resize-edge s" @mousedown.stop="startResize(i, 's', $event)"></div>
-                    <div class="resize-handle resize-edge w" @mousedown.stop="startResize(i, 'w', $event)"></div>
-                    <div class="resize-handle resize-edge e" @mousedown.stop="startResize(i, 'e', $event)"></div>
-                </template>
+        <div id="app">
+            <!-- Loading indicator -->
+            <div v-if="loading" class="loading">
+                PDF oluşturuluyor... {{ loadingProgress }}%
             </div>
 
-        </div>
-
-        <!-- Kontrol paneli sağda -->
-        <div class="controls">
-            <h3>Template Editor</h3>
-
-            <div class="button-group">
-                <button :class="{active: activeButton==='text'}" @click="addTextBlock">Text Ekle</button>
-                <button :class="{active: activeButton==='image'}" @click="addImageBlock">Resim Ekle</button>
-                <button :class="{active: activeButton==='url_image'}" @click="addUrlImageBlock">URL'den Resim
-                    Ekle</button>
-            </div>
-
-            <button :class="{active: activeButton==='pdf'}" @click="exportPdfClick" :disabled="loading">PDF
-                Üret</button>
-
-            <div v-if="selected!==null" class="editor">
-                <h4>Alan Düzenle - {{ placed[selected].type === 'text' ? 'Text' : placed[selected].type === 'image' ?
-                    'Resim' : 'URL Resim' }}</h4>
-
-                <label>Etiket:</label><br>
-                <input v-model="placed[selected].label" placeholder="örn. Müşteri Adı"><br><br>
-
-                <div v-if="placed[selected].type === 'url_image'">
-                    <label>Excel Kolonu (URL):</label><br>
-                    <input v-model="placed[selected].column" placeholder="örn. ImageURL"><br><br>
-
-                    <label>Test URL'i:</label><br>
-                    <input v-model="testUrl" placeholder="Test için bir URL girin"><br><br>
-                    <button @click="testUrlImage">URL'yi Test Et</button><br><br>
-
-                    <div v-if="urlTestResult" style="margin-top: 10px;">
-                        <strong>Test Sonucu:</strong><br>
-                        <span :style="{color: urlTestResult.success ? 'green' : 'red'}">
-                            {{ urlTestResult.message }}
-                        </span><br>
-                        <img v-if="urlTestResult.success && urlTestResult.imageData" :src="urlTestResult.imageData"
-                            style="max-width: 100px; max-height: 100px; margin-top: 5px;">
+            <!-- Template kaydetme modalı -->
+            <div v-if="showSaveModal" class="modal">
+                <div class="modal-content">
+                    <h4>Template'i Kaydet</h4>
+                    <p>Bu template'i kaydetmek ister misiniz?</p>
+                    <label>Template Adı:</label><br>
+                    <input type="text" v-model="templateName" placeholder="Template adını girin"
+                        style="width: 100%; margin: 10px 0;"><br>
+                    <div class="modal-buttons">
+                        <button @click="showSaveModal = false" style="background-color: #666;">İptal</button>
+                        <button @click="saveTemplate" :disabled="!templateName.trim()">Kaydet</button>
                     </div>
                 </div>
-                <div v-else>
-                    <label>Excel Kolonu:</label><br>
-                    <input v-model="placed[selected].column" placeholder="örn. Name"><br><br>
+            </div>
+
+            <!-- A4 sahnesi -->
+            <div id="a4" @click="selected=null" @dragover.prevent @drop="onDrop">
+                <div v-for="(item,i) in placed" :key="i" class="placed"
+                    :style="{ left: item.x+'px', top: item.y+'px', width:item.width+'px', height:item.height+'px' }"
+                    @mousedown.stop="startDrag(i,$event)" @dragstart.prevent draggable="false" @click.stop="selected=i">
+
+                    <template v-if="item.type==='image'">
+                        <img :src="item.src" :style="{width:'100%', height:'100%', objectFit: 'contain'}"
+                            draggable="false" />
+                    </template>
+                    <template v-else-if="item.type==='url_image'">
+                        <div
+                            style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; text-align:center;">
+                            URL Resim<br>{{ item.column || 'Excel kolonu belirtilmedi' }}
+                        </div>
+                    </template>
+                    <template v-else>{{item.label}}</template>
+
+                    <!-- Resize handles sadece resim tipli ve seçili alan için -->
+                    <template v-if="(item.type==='image' || item.type==='url_image') && selected===i">
+                        <!-- Köşe handle'ları -->
+                        <div class="resize-handle resize-corner nw" @mousedown.stop="startResize(i, 'nw', $event)">
+                        </div>
+                        <div class="resize-handle resize-corner ne" @mousedown.stop="startResize(i, 'ne', $event)">
+                        </div>
+                        <div class="resize-handle resize-corner sw" @mousedown.stop="startResize(i, 'sw', $event)">
+                        </div>
+                        <div class="resize-handle resize-corner se" @mousedown.stop="startResize(i, 'se', $event)">
+                        </div>
+
+                        <!-- Kenar handle'ları -->
+                        <div class="resize-handle resize-edge n" @mousedown.stop="startResize(i, 'n', $event)"></div>
+                        <div class="resize-handle resize-edge s" @mousedown.stop="startResize(i, 's', $event)"></div>
+                        <div class="resize-handle resize-edge w" @mousedown.stop="startResize(i, 'w', $event)"></div>
+                        <div class="resize-handle resize-edge e" @mousedown.stop="startResize(i, 'e', $event)"></div>
+                    </template>
                 </div>
 
-                <label>Genişlik (px):</label><br>
-                <input type="number" v-model.number="placed[selected].width"><br><br>
-                <label>Yükseklik (px):</label><br>
-                <input type="number" v-model.number="placed[selected].height"><br><br>
+            </div>
 
-                <div v-if="placed[selected].type==='image'">
-                    <label>
-                        <input type="checkbox" v-model="placed[selected].maintainAspectRatio">
-                        En-boy oranını koru
-                    </label><br><br>
-                </div>
+            <!-- Kontrol paneli sağda -->
+            <div class="controls">
+                <h3>Template Editor</h3>
 
                 <div class="button-group">
-                    <button @click="selected=null">Kapat</button>
-                    <button @click="deleteSelectedItem" style="background-color: #dc3545;">Sil</button>
+                    <button :class="{active: activeButton==='text'}" @click="addTextBlock">Text Ekle</button>
+                    <button :class="{active: activeButton==='image'}" @click="addImageBlock">Resim Ekle</button>
+                    <button :class="{active: activeButton==='url_image'}" @click="addUrlImageBlock">URL'den Resim
+                        Ekle</button>
                 </div>
-            </div>
 
-            <div class="editor">
-                <label>Excel Dosyası Seç:</label>
-                <input type="file" @change="onExcel" accept=".xlsx,.xls,.csv" />
-                <small>Resimler masaüstünden sürükle-bırak ile A4 sahnesine eklenebilir.</small>
-                <div v-if="rows.length">
-                    <br><strong>{{ rows.length }} satır yüklendi</strong>
-                    <br>Kolonlar: {{ Object.keys(rows[0] || {}).join(', ') }}
+                <button :class="{active: activeButton==='pdf'}" @click="exportPdfClick" :disabled="loading">PDF
+                    Üret</button>
+
+                <div v-if="selected!==null" class="editor">
+                    <h4>Alan Düzenle - {{ placed[selected].type === 'text' ? 'Text' : placed[selected].type === 'image'
+                        ?
+                        'Resim' : 'URL Resim' }}</h4>
+
+                    <label>Etiket:</label><br>
+                    <input v-model="placed[selected].label" placeholder="örn. Müşteri Adı"><br><br>
+
+                    <div v-if="placed[selected].type === 'url_image'">
+                        <label>Excel Kolonu (URL):</label><br>
+                        <input v-model="placed[selected].column" placeholder="örn. ImageURL"><br><br>
+
+                        <label>Test URL'i:</label><br>
+                        <input v-model="testUrl" placeholder="Test için bir URL girin"><br><br>
+                        <button @click="testUrlImage">URL'yi Test Et</button><br><br>
+
+                        <div v-if="urlTestResult" style="margin-top: 10px;">
+                            <strong>Test Sonucu:</strong><br>
+                            <span :style="{color: urlTestResult.success ? 'green' : 'red'}">
+                                {{ urlTestResult.message }}
+                            </span><br>
+                            <img v-if="urlTestResult.success && urlTestResult.imageData" :src="urlTestResult.imageData"
+                                style="max-width: 100px; max-height: 100px; margin-top: 5px;">
+                        </div>
+                    </div>
+                    <div v-else>
+                        <label>Excel Kolonu:</label><br>
+                        <input v-model="placed[selected].column" placeholder="örn. Name"><br><br>
+                    </div>
+
+                    <label>Genişlik (px):</label><br>
+                    <input type="number" v-model.number="placed[selected].width"><br><br>
+                    <label>Yükseklik (px):</label><br>
+                    <input type="number" v-model.number="placed[selected].height"><br><br>
+
+                    <div v-if="placed[selected].type==='image'">
+                        <label>
+                            <input type="checkbox" v-model="placed[selected].maintainAspectRatio">
+                            En-boy oranını koru
+                        </label><br><br>
+                    </div>
+
+                    <div class="button-group">
+                        <button @click="selected=null">Kapat</button>
+                        <button @click="deleteSelectedItem" style="background-color: #dc3545;">Sil</button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Kayıtlı Template'ler -->
-            <div v-if="savedTemplates.length" class="editor">
-                <h4>Kayıtlı Template'ler</h4>
-                <div class="saved-templates">
-                    <div v-for="(template, index) in savedTemplates" :key="index" class="template-item">
-                        <span class="template-name">{{ template.name }}</span>
-                        <span class="template-date">{{ formatDate(template.date) }}</span>
-                        <div>
-                            <button @click="loadTemplate(template)"
-                                style="background-color: #28a745; font-size: 12px; padding: 4px 8px;">Yükle</button>
-                            <button @click="deleteTemplate(index)"
-                                style="background-color: #dc3545; font-size: 12px; padding: 4px 8px; margin-left: 5px;">Sil</button>
+                <div class="editor">
+                    <label>Excel Dosyası Seç:</label>
+                    <input type="file" @change="onExcel" accept=".xlsx,.xls,.csv" />
+                    <small>Resimler masaüstünden sürükle-bırak ile A4 sahnesine eklenebilir.</small>
+                    <div v-if="rows.length">
+                        <br><strong>{{ rows.length }} satır yüklendi</strong>
+                        <br>Kolonlar: {{ Object.keys(rows[0] || {}).join(', ') }}
+                    </div>
+                </div>
+
+                <!-- Kayıtlı Template'ler -->
+                <div v-if="savedTemplates.length" class="editor">
+                    <h4>Kayıtlı Template'ler</h4>
+                    <div class="saved-templates">
+                        <div v-for="(template, index) in savedTemplates" :key="index" class="template-item">
+                            <span class="template-name">{{ template.name }}</span>
+                            <span class="template-date">{{ formatDate(template.date) }}</span>
+                            <div>
+                                <button @click="loadTemplate(template)"
+                                    style="background-color: #28a745; font-size: 12px; padding: 4px 8px;">Yükle</button>
+                                <button @click="deleteTemplate(index)"
+                                    style="background-color: #dc3545; font-size: 12px; padding: 4px 8px; margin-left: 5px;">Sil</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+
 
     <script>
         const { jsPDF } = window.jspdf;
@@ -658,8 +687,11 @@
                     this.loadingProgress = 0;
 
                     try {
-                        const doc = new jsPDF({ unit: "pt", format: "a4" });
-
+                        // 👇 px ile birebir çalışan PDF
+                        const doc = new jsPDF({
+                            unit: "px",
+                            format: [794, 1123] // A4 px boyutu
+                        });
                         for (let rowIndex = 0; rowIndex < this.rows.length; rowIndex++) {
                             const row = this.rows[rowIndex];
                             this.loadingProgress = Math.round(((rowIndex + 1) / this.rows.length) * 100);
@@ -686,7 +718,7 @@
                                     } else {
                                         const val = row[field.column] || "";
                                         const text = field.label ? `${field.label}: ${val}` : val.toString();
-                                        doc.text(text, field.x, field.y + 12);
+                                        doc.text(text, field.x, field.y + 12); // 👈 px uyumlu
                                     }
                                 } catch (error) {
                                     console.warn('Alan işlenirken hata:', field, error);
@@ -711,6 +743,7 @@
                         this.loadingProgress = 0;
                     }
                 },
+
 
                 saveTemplate() {
                     if (!this.templateName.trim()) return;
