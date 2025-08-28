@@ -1,3 +1,79 @@
+.loading {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: rgba(0, 0, 0, 0.8);
+color: white;
+padding: 20px;
+border-radius: 8px;
+}
+
+.modal {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.7);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 1000;
+}
+
+.modal-content {
+background: white;
+padding: 20px;
+border-radius: 8px;
+max-width: 400px;
+width: 90%;
+}
+
+.modal-content h4 {
+margin-top: 0;
+}
+
+.modal-buttons {
+display: flex;
+gap: 10px;
+justify-content: flex-end;
+margin-top: 15px;
+}
+
+.saved-templates {
+background: #f9f9f9;
+border: 1px solid #333;
+padding: 10px;
+max-height: 200px;
+overflow-y: auto;
+}
+
+.template-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 8px;
+border: 1px solid #ddd;
+margin-bottom: 5px;
+border-radius: 4px;
+background: white;
+}
+
+.template-item:hover {
+background-color: #f0f0f0;
+}
+
+.template-name {
+font-weight: bold;
+flex-grow: 1;
+}
+
+.template-date {
+font-size: 12px;
+color: #666;
+margin-right: 10px;
+}
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -13,21 +89,25 @@
             display: flex;
             margin: 0;
             padding: 20px;
-            background-color: #f0f0f0;
+            background-color: #000000;
+            overflow: hidden;
         }
 
         #app {
             display: flex;
             width: 100%;
+            height: 100vh;
+            gap: 20px;
         }
 
         #a4 {
-            width: 595px;
-            height: 842px;
-            border: none;
+            width: 210mm;
+            height: 297mm;
+            border: 2px solid #333;
             background-color: #fff;
             position: relative;
-            margin-right: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .placed {
@@ -42,11 +122,92 @@
             overflow: hidden;
         }
 
+        .resize-handle {
+            position: absolute;
+            background: #6a0dad;
+            border: 1px solid #fff;
+        }
+
+        .resize-corner {
+            width: 8px;
+            height: 8px;
+            cursor: nw-resize;
+        }
+
+        .resize-corner.se {
+            bottom: -4px;
+            right: -4px;
+            cursor: se-resize;
+        }
+
+        .resize-corner.sw {
+            bottom: -4px;
+            left: -4px;
+            cursor: sw-resize;
+        }
+
+        .resize-corner.ne {
+            top: -4px;
+            right: -4px;
+            cursor: ne-resize;
+        }
+
+        .resize-corner.nw {
+            top: -4px;
+            left: -4px;
+            cursor: nw-resize;
+        }
+
+        .resize-edge {
+            background: #6a0dad;
+        }
+
+        .resize-edge.n {
+            top: -4px;
+            left: 4px;
+            right: 4px;
+            height: 8px;
+            cursor: n-resize;
+        }
+
+        .resize-edge.s {
+            bottom: -4px;
+            left: 4px;
+            right: 4px;
+            height: 8px;
+            cursor: s-resize;
+        }
+
+        .resize-edge.w {
+            left: -4px;
+            top: 4px;
+            bottom: 4px;
+            width: 8px;
+            cursor: w-resize;
+        }
+
+        .resize-edge.e {
+            right: -4px;
+            top: 4px;
+            bottom: 4px;
+            width: 8px;
+            cursor: e-resize;
+        }
+
         .controls {
-            flex-grow: 1;
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            overflow-y: auto;
+            max-height: 100vh;
+            padding-right: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .editor {
@@ -84,15 +245,70 @@
             box-sizing: border-box;
         }
 
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
             padding: 20px;
             border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h4 {
+            margin-top: 0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+
+        .saved-templates {
+            background: #f9f9f9;
+            border: 1px solid #333;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .template-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .template-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .template-name {
+            font-weight: bold;
+            flex-grow: 1;
+        }
+
+        .template-date {
+            font-size: 12px;
+            color: #666;
+            margin-right: 10px;
         }
     </style>
 </head>
@@ -102,6 +318,21 @@
         <!-- Loading indicator -->
         <div v-if="loading" class="loading">
             PDF oluşturuluyor... {{ loadingProgress }}%
+        </div>
+
+        <!-- Template kaydetme modalı -->
+        <div v-if="showSaveModal" class="modal">
+            <div class="modal-content">
+                <h4>Template'i Kaydet</h4>
+                <p>Bu template'i kaydetmek ister misiniz?</p>
+                <label>Template Adı:</label><br>
+                <input type="text" v-model="templateName" placeholder="Template adını girin"
+                    style="width: 100%; margin: 10px 0;"><br>
+                <div class="modal-buttons">
+                    <button @click="showSaveModal = false" style="background-color: #666;">İptal</button>
+                    <button @click="saveTemplate" :disabled="!templateName.trim()">Kaydet</button>
+                </div>
+            </div>
         </div>
 
         <!-- A4 sahnesi -->
@@ -114,7 +345,28 @@
                     <img :src="item.src" :style="{width:'100%', height:'100%', objectFit: 'contain'}"
                         draggable="false" />
                 </template>
+                <template v-else-if="item.type==='url_image'">
+                    <div
+                        style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; text-align:center;">
+                        URL Resim<br>{{ item.column || 'Excel kolonu belirtilmedi' }}
+                    </div>
+                </template>
                 <template v-else>{{item.label}}</template>
+
+                <!-- Resize handles sadece resim tipli ve seçili alan için -->
+                <template v-if="(item.type==='image' || item.type==='url_image') && selected===i">
+                    <!-- Köşe handle'ları -->
+                    <div class="resize-handle resize-corner nw" @mousedown.stop="startResize(i, 'nw', $event)"></div>
+                    <div class="resize-handle resize-corner ne" @mousedown.stop="startResize(i, 'ne', $event)"></div>
+                    <div class="resize-handle resize-corner sw" @mousedown.stop="startResize(i, 'sw', $event)"></div>
+                    <div class="resize-handle resize-corner se" @mousedown.stop="startResize(i, 'se', $event)"></div>
+
+                    <!-- Kenar handle'ları -->
+                    <div class="resize-handle resize-edge n" @mousedown.stop="startResize(i, 'n', $event)"></div>
+                    <div class="resize-handle resize-edge s" @mousedown.stop="startResize(i, 's', $event)"></div>
+                    <div class="resize-handle resize-edge w" @mousedown.stop="startResize(i, 'w', $event)"></div>
+                    <div class="resize-handle resize-edge e" @mousedown.stop="startResize(i, 'e', $event)"></div>
+                </template>
             </div>
 
         </div>
@@ -122,18 +374,20 @@
         <!-- Kontrol paneli sağda -->
         <div class="controls">
             <h3>Template Editor</h3>
-            <button :class="{active: activeButton==='text'}" @click="addTextBlock">Blok Ekle</button>
+
+            <div class="button-group">
+                <button :class="{active: activeButton==='text'}" @click="addTextBlock">Text Ekle</button>
+                <button :class="{active: activeButton==='image'}" @click="addImageBlock">Resim Ekle</button>
+                <button :class="{active: activeButton==='url_image'}" @click="addUrlImageBlock">URL'den Resim
+                    Ekle</button>
+            </div>
+
             <button :class="{active: activeButton==='pdf'}" @click="exportPdfClick" :disabled="loading">PDF
                 Üret</button>
 
             <div v-if="selected!==null" class="editor">
-                <h4>Alan Düzenle</h4>
-                <label>Tip:</label><br>
-                <select v-model="placed[selected].type">
-                    <option value="text">Text</option>
-                    <option value="image">Resim</option>
-                    <option value="url_image">URL'den Resim</option>
-                </select><br><br>
+                <h4>Alan Düzenle - {{ placed[selected].type === 'text' ? 'Text' : placed[selected].type === 'image' ?
+                    'Resim' : 'URL Resim' }}</h4>
 
                 <label>Etiket:</label><br>
                 <input v-model="placed[selected].label" placeholder="örn. Müşteri Adı"><br><br>
@@ -141,7 +395,19 @@
                 <div v-if="placed[selected].type === 'url_image'">
                     <label>Excel Kolonu (URL):</label><br>
                     <input v-model="placed[selected].column" placeholder="örn. ImageURL"><br><br>
+
+                    <label>Test URL'i:</label><br>
+                    <input v-model="testUrl" placeholder="Test için bir URL girin"><br><br>
                     <button @click="testUrlImage">URL'yi Test Et</button><br><br>
+
+                    <div v-if="urlTestResult" style="margin-top: 10px;">
+                        <strong>Test Sonucu:</strong><br>
+                        <span :style="{color: urlTestResult.success ? 'green' : 'red'}">
+                            {{ urlTestResult.message }}
+                        </span><br>
+                        <img v-if="urlTestResult.success && urlTestResult.imageData" :src="urlTestResult.imageData"
+                            style="max-width: 100px; max-height: 100px; margin-top: 5px;">
+                    </div>
                 </div>
                 <div v-else>
                     <label>Excel Kolonu:</label><br>
@@ -160,7 +426,10 @@
                     </label><br><br>
                 </div>
 
-                <button @click="selected=null">Kapat</button>
+                <div class="button-group">
+                    <button @click="selected=null">Kapat</button>
+                    <button @click="deleteSelectedItem" style="background-color: #dc3545;">Sil</button>
+                </div>
             </div>
 
             <div class="editor">
@@ -170,6 +439,23 @@
                 <div v-if="rows.length">
                     <br><strong>{{ rows.length }} satır yüklendi</strong>
                     <br>Kolonlar: {{ Object.keys(rows[0] || {}).join(', ') }}
+                </div>
+            </div>
+
+            <!-- Kayıtlı Template'ler -->
+            <div v-if="savedTemplates.length" class="editor">
+                <h4>Kayıtlı Template'ler</h4>
+                <div class="saved-templates">
+                    <div v-for="(template, index) in savedTemplates" :key="index" class="template-item">
+                        <span class="template-name">{{ template.name }}</span>
+                        <span class="template-date">{{ formatDate(template.date) }}</span>
+                        <div>
+                            <button @click="loadTemplate(template)"
+                                style="background-color: #28a745; font-size: 12px; padding: 4px 8px;">Yükle</button>
+                            <button @click="deleteTemplate(index)"
+                                style="background-color: #dc3545; font-size: 12px; padding: 4px 8px; margin-left: 5px;">Sil</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -185,21 +471,28 @@
                     rows: [],
                     selected: null,
                     dragging: { index: null, offsetX: 0, offsetY: 0 },
+                    resizing: { index: null, direction: null, startX: 0, startY: 0, startWidth: 0, startHeight: 0, startLeft: 0, startTop: 0 },
                     activeButton: null,
                     loading: false,
-                    loadingProgress: 0
+                    loadingProgress: 0,
+                    testUrl: '',
+                    urlTestResult: null,
+                    showSaveModal: false,
+                    templateName: '',
+                    savedTemplates: []
                 }
             },
             mounted() {
                 document.addEventListener("mousemove", this.onMouseMove);
                 document.addEventListener("mouseup", this.onMouseUp);
+                this.loadSavedTemplates();
             },
             methods: {
                 addTextBlock() {
                     this.activeButton = 'text';
                     this.placed.push({
                         type: 'text',
-                        label: 'Yeni Alan',
+                        label: 'Yeni Text Alanı',
                         column: '',
                         x: 50,
                         y: 50,
@@ -210,10 +503,84 @@
                     setTimeout(() => this.activeButton = null, 200);
                 },
 
+                addImageBlock() {
+                    this.activeButton = 'image';
+                    this.placed.push({
+                        type: 'image',
+                        label: 'Resim Alanı',
+                        column: '',
+                        src: '',
+                        x: 50,
+                        y: 80,
+                        width: 100,
+                        height: 100,
+                        maintainAspectRatio: true,
+                        originalAspectRatio: 1
+                    });
+                    this.selected = this.placed.length - 1;
+                    setTimeout(() => this.activeButton = null, 200);
+                },
+
+                addUrlImageBlock() {
+                    this.activeButton = 'url_image';
+                    this.placed.push({
+                        type: 'url_image',
+                        label: 'URL Resim',
+                        column: '',
+                        x: 50,
+                        y: 110,
+                        width: 100,
+                        height: 100
+                    });
+                    this.selected = this.placed.length - 1;
+                    setTimeout(() => this.activeButton = null, 200);
+                },
+
+                async testUrlImage() {
+                    if (!this.testUrl) {
+                        this.urlTestResult = { success: false, message: 'Lütfen test URL\'i girin!' };
+                        return;
+                    }
+
+                    this.urlTestResult = { success: false, message: 'Test ediliyor...' };
+
+                    try {
+                        const imageData = await this.loadImageFromUrl(this.testUrl);
+                        this.urlTestResult = {
+                            success: true,
+                            message: 'URL başarıyla yüklendi!',
+                            imageData: imageData
+                        };
+                    } catch (error) {
+                        this.urlTestResult = {
+                            success: false,
+                            message: 'Hata: ' + error.message
+                        };
+                    }
+                },
+
+                deleteSelectedItem() {
+                    if (this.selected !== null && confirm('Bu alanı silmek istediğinizden emin misiniz?')) {
+                        this.placed.splice(this.selected, 1);
+                        this.selected = null;
+                    }
+                },
+
                 startDrag(index, e) {
                     this.dragging.index = index;
                     this.dragging.offsetX = e.offsetX;
                     this.dragging.offsetY = e.offsetY;
+                },
+
+                startResize(index, direction, e) {
+                    this.resizing.index = index;
+                    this.resizing.direction = direction;
+                    this.resizing.startX = e.clientX;
+                    this.resizing.startY = e.clientY;
+                    this.resizing.startWidth = this.placed[index].width;
+                    this.resizing.startHeight = this.placed[index].height;
+                    this.resizing.startLeft = this.placed[index].x;
+                    this.resizing.startTop = this.placed[index].y;
                 },
 
                 onMouseMove(e) {
@@ -223,10 +590,87 @@
                         item.x = Math.min(Math.max(e.clientX - rect.left - this.dragging.offsetX, 0), rect.width - item.width);
                         item.y = Math.min(Math.max(e.clientY - rect.top - this.dragging.offsetY, 0), rect.height - item.height);
                     }
+
+                    if (this.resizing.index !== null) {
+                        const deltaX = e.clientX - this.resizing.startX;
+                        const deltaY = e.clientY - this.resizing.startY;
+                        const item = this.placed[this.resizing.index];
+                        const direction = this.resizing.direction;
+
+                        let newWidth = this.resizing.startWidth;
+                        let newHeight = this.resizing.startHeight;
+                        let newX = this.resizing.startLeft;
+                        let newY = this.resizing.startTop;
+
+                        if (direction === 'se') {
+                            newWidth = Math.max(20, this.resizing.startWidth + deltaX);
+                            newHeight = Math.max(20, this.resizing.startHeight + deltaY);
+                        } else if (direction === 'sw') {
+                            newWidth = Math.max(20, this.resizing.startWidth - deltaX);
+                            newHeight = Math.max(20, this.resizing.startHeight + deltaY);
+                            newX = this.resizing.startLeft + deltaX;
+                        } else if (direction === 'ne') {
+                            newWidth = Math.max(20, this.resizing.startWidth + deltaX);
+                            newHeight = Math.max(20, this.resizing.startHeight - deltaY);
+                            newY = this.resizing.startTop + deltaY;
+                        } else if (direction === 'nw') {
+                            newWidth = Math.max(20, this.resizing.startWidth - deltaX);
+                            newHeight = Math.max(20, this.resizing.startHeight - deltaY);
+                            newX = this.resizing.startLeft + deltaX;
+                            newY = this.resizing.startTop + deltaY;
+                        } else if (direction === 'n') {
+                            newHeight = Math.max(20, this.resizing.startHeight - deltaY);
+                            newY = this.resizing.startTop + deltaY;
+                        } else if (direction === 's') {
+                            newHeight = Math.max(20, this.resizing.startHeight + deltaY);
+                        } else if (direction === 'w') {
+                            newWidth = Math.max(20, this.resizing.startWidth - deltaX);
+                            newX = this.resizing.startLeft + deltaX;
+                        } else if (direction === 'e') {
+                            newWidth = Math.max(20, this.resizing.startWidth + deltaX);
+                        }
+
+                        if (item.maintainAspectRatio && item.originalAspectRatio && ['se', 'sw', 'ne', 'nw'].includes(direction)) {
+                            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                                newHeight = newWidth / item.originalAspectRatio;
+                            } else {
+                                newWidth = newHeight * item.originalAspectRatio;
+                            }
+
+                            if (direction === 'sw' || direction === 'nw') {
+                                newX = this.resizing.startLeft + (this.resizing.startWidth - newWidth);
+                            }
+                            if (direction === 'ne' || direction === 'nw') {
+                                newY = this.resizing.startTop + (this.resizing.startHeight - newHeight);
+                            }
+                        }
+
+                        const rect = document.getElementById("a4").getBoundingClientRect();
+                        if (newX < 0) {
+                            newWidth += newX;
+                            newX = 0;
+                        }
+                        if (newY < 0) {
+                            newHeight += newY;
+                            newY = 0;
+                        }
+                        if (newX + newWidth > rect.width) {
+                            newWidth = rect.width - newX;
+                        }
+                        if (newY + newHeight > rect.height) {
+                            newHeight = rect.height - newY;
+                        }
+
+                        item.width = Math.max(20, Math.round(newWidth));
+                        item.height = Math.max(20, Math.round(newHeight));
+                        item.x = Math.round(newX);
+                        item.y = Math.round(newY);
+                    }
                 },
 
                 onMouseUp() {
                     this.dragging.index = null;
+                    this.resizing.index = null;
                 },
 
                 onDrop(e) {
@@ -246,11 +690,9 @@
                     reader.onload = (ev) => {
                         const img = new Image();
                         img.onload = () => {
-                            // Orijinal boyutları al, ama A4 sınırları içinde tut
                             let width = img.naturalWidth;
                             let height = img.naturalHeight;
 
-                            // A4 boyutlarına göre ölçeklendir (maksimum 400px genişlik/yükseklik)
                             const maxSize = 400;
                             if (width > maxSize || height > maxSize) {
                                 const ratio = Math.min(maxSize / width, maxSize / height);
@@ -276,45 +718,64 @@
                     reader.readAsDataURL(file);
                 },
 
-
-
                 async loadImageFromUrl(url) {
                     return new Promise((resolve, reject) => {
                         const img = new Image();
                         img.crossOrigin = "anonymous";
 
                         img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            canvas.width = img.naturalWidth;
-                            canvas.height = img.naturalHeight;
-                            ctx.drawImage(img, 0, 0);
-                            resolve(canvas.toDataURL('image/jpeg', 0.9));
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = img.naturalWidth;
+                                canvas.height = img.naturalHeight;
+                                ctx.drawImage(img, 0, 0);
+                                resolve(canvas.toDataURL('image/jpeg', 0.9));
+                            } catch (error) {
+                                reject(new Error('Canvas işlemi başarısız'));
+                            }
                         };
 
                         img.onerror = () => {
-                            // CORS hatası durumunda proxy dene
-                            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                            fetch(proxyUrl)
-                                .then(response => response.json())
-                                .then(data => {
-                                    const img2 = new Image();
-                                    img2.onload = () => {
-                                        const canvas = document.createElement('canvas');
-                                        const ctx = canvas.getContext('2d');
-                                        canvas.width = img2.naturalWidth;
-                                        canvas.height = img2.naturalHeight;
-                                        ctx.drawImage(img2, 0, 0);
-                                        resolve(canvas.toDataURL('image/jpeg', 0.9));
-                                    };
-                                    img2.onerror = () => reject(new Error('Resim yüklenemedi'));
-                                    img2.src = url;
-                                })
-                                .catch(() => reject(new Error('CORS hatası - resim erişilemiyor')));
+                            this.tryProxyServices(url).then(resolve).catch(reject);
                         };
 
-                        img.src = url;
+                        const cleanUrl = url.trim();
+                        if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                            reject(new Error('Geçersiz URL formatı. http:// veya https:// ile başlamalı.'));
+                            return;
+                        }
+
+                        img.src = cleanUrl;
                     });
+                },
+
+                async tryProxyServices(url) {
+                    const proxyServices = [
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                        `https://cors-anywhere.herokuapp.com/${url}`,
+                        `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+                    ];
+
+                    for (const proxyUrl of proxyServices) {
+                        try {
+                            const response = await fetch(proxyUrl);
+                            if (response.ok) {
+                                const blob = await response.blob();
+                                return new Promise((resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve(reader.result);
+                                    reader.onerror = () => reject(new Error('Dosya okunamadı'));
+                                    reader.readAsDataURL(blob);
+                                });
+                            }
+                        } catch (error) {
+                            console.log(`Proxy ${proxyUrl} başarısız:`, error);
+                            continue;
+                        }
+                    }
+
+                    throw new Error('Resim yüklenemedi. CORS hatası veya geçersiz URL.');
                 },
 
                 async onExcel(e) {
@@ -361,10 +822,8 @@
                             for (const field of this.placed) {
                                 try {
                                     if (field.type === 'image' && field.src) {
-                                        // Yerel resim
                                         doc.addImage(field.src, "JPEG", field.x, field.y, field.width, field.height);
                                     } else if (field.type === 'url_image' && field.column) {
-                                        // URL'den resim
                                         const imageUrl = row[field.column];
                                         if (imageUrl) {
                                             try {
@@ -376,7 +835,6 @@
                                             }
                                         }
                                     } else {
-                                        // Text
                                         const val = row[field.column] || "";
                                         const text = field.label ? `${field.label}: ${val}` : val.toString();
                                         doc.text(text, field.x, field.y + 12);
@@ -386,7 +844,6 @@
                                 }
                             }
 
-                            // Her 10 satırda bir kısa bekle (UI donmasını önlemek için)
                             if (rowIndex % 10 === 0) {
                                 await new Promise(resolve => setTimeout(resolve, 10));
                             }
@@ -394,27 +851,78 @@
 
                         doc.save("output.pdf");
 
+                        // PDF başarıyla oluşturulduktan sonra kaydetme modalını göster
+                        this.showSaveModal = true;
+                        this.templateName = '';
+
                     } catch (error) {
                         alert("PDF oluşturulurken hata: " + error.message);
                     } finally {
                         this.loading = false;
                         this.loadingProgress = 0;
                     }
+                },
+
+                saveTemplate() {
+                    if (!this.templateName.trim()) return;
+
+                    const template = {
+                        name: this.templateName.trim(),
+                        date: new Date().toISOString(),
+                        placed: JSON.parse(JSON.stringify(this.placed)) // Deep copy
+                    };
+
+                    this.savedTemplates.push(template);
+                    localStorage.setItem('pdfTemplates', JSON.stringify(this.savedTemplates));
+
+                    this.showSaveModal = false;
+                    this.templateName = '';
+                    alert('Template başarıyla kaydedildi!');
+                },
+
+                loadTemplate(template) {
+                    if (confirm(`"${template.name}" template'ini yüklemek istediğinizden emin misiniz? Mevcut çalışma kaybolacak.`)) {
+                        this.placed = JSON.parse(JSON.stringify(template.placed)); // Deep copy
+                        this.selected = null;
+                        alert('Template yüklendi!');
+                    }
+                },
+
+                deleteTemplate(index) {
+                    if (confirm('Bu template\'i silmek istediğinizden emin misiniz?')) {
+                        this.savedTemplates.splice(index, 1);
+                        localStorage.setItem('pdfTemplates', JSON.stringify(this.savedTemplates));
+                        alert('Template silindi!');
+                    }
+                },
+
+                loadSavedTemplates() {
+                    const saved = localStorage.getItem('pdfTemplates');
+                    if (saved) {
+                        try {
+                            this.savedTemplates = JSON.parse(saved);
+                        } catch (error) {
+                            console.warn('Kayıtlı template\'ler yüklenemedi:', error);
+                            this.savedTemplates = [];
+                        }
+                    }
+                },
+
+                formatDate(isoString) {
+                    const date = new Date(isoString);
+                    return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
                 }
             },
 
             watch: {
-                // En-boy oranını koruma
                 'placed': {
                     handler(newPlaced) {
                         newPlaced.forEach(item => {
                             if (item.type === 'image' && item.maintainAspectRatio && item.originalAspectRatio) {
-                                // Genişlik değiştiğinde yüksekliği ayarla
                                 if (item.width && item.width !== item.lastWidth) {
                                     item.height = Math.round(item.width / item.originalAspectRatio);
                                     item.lastWidth = item.width;
                                 }
-                                // Yükseklik değiştiğinde genişliği ayarla
                                 else if (item.height && item.height !== item.lastHeight) {
                                     item.width = Math.round(item.height * item.originalAspectRatio);
                                     item.lastHeight = item.height;
